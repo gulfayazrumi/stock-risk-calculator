@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # =================== PAGE CONFIG =================== #
 st.set_page_config(
     page_title="📈 Stock Risk Calculator Pro",
-    layout="wide",
+    
     initial_sidebar_state="collapsed"
 )
 
@@ -17,6 +17,11 @@ st.markdown("""
         color: #E0E0E0;
         font-family: 'Inter', sans-serif;
     }
+            .main .block-container {
+    max-width: 1000px;       /* Adjust this number for desired width */
+    padding: 2rem 2.5rem;    /* Top/bottom and left/right padding */
+    margin: 0 auto;          /* Centers the content */
+}
     .stApp {
         background-color: #0E1117;
     }
