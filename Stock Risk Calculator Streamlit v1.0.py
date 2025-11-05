@@ -87,12 +87,12 @@ st.title("📊 Stock Risk Calculator — Professional Edition")
 st.caption("💼 Analyze investment risk, reward, and position sizing with precision and clarity.")
 
 # =================== TABS =================== #
-tab1, tab2 = st.tabs(["💰 Investment-based Calculator", "🧮 Position Sizing by Risk Limit"])
+tab1, tab2, tab3 = st.tabs(["💰 Long Trade", "🧮 Risk Position Sizing", "📉 Short Trade"])
 
-# =================== TAB 1: INVESTMENT =================== #
+# =================== TAB 1: LONG TRADE =================== #
 with tab1:
-    st.subheader("💵 Investment-based Analysis")
-    st.markdown("Enter your total investment, target, and stop loss levels to understand your **risk, profit, and reward ratio**.")
+    st.subheader("💵 Long (Buy) Trade Calculator")
+    st.markdown("Analyze your **buy-side trade** — when you buy low and sell higher for profit.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -110,9 +110,8 @@ with tab1:
         total_reward = reward_per_share * shares
         reward_risk_ratio = total_reward / total_risk if total_risk != 0 else 0
 
-        # --- Results Card --- #
         st.markdown("<div class='result-card'>", unsafe_allow_html=True)
-        st.markdown("### 📈 Results Summary")
+        st.markdown("### 📈 Long Trade Results")
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.markdown("<div class='metric-label'>Shares</div>", unsafe_allow_html=True)
         c1.markdown(f"<div class='metric-value'>{shares:,.2f}</div>", unsafe_allow_html=True)
@@ -126,8 +125,7 @@ with tab1:
         c5.markdown(f"<div class='metric-value'>{reward_risk_ratio:,.2f}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- Chart --- #
-        st.markdown("<h4 class='chart-title'>📊 Risk vs Reward Comparison</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 class='chart-title'>📊 Risk vs Reward</h4>", unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5, 2.8))
         ax.bar(["Total Risk", "Total Profit"], [total_risk, total_reward], color=['#FF4B4B', '#00C853'], alpha=0.9)
         ax.set_ylabel("PKR")
@@ -137,7 +135,7 @@ with tab1:
 # =================== TAB 2: POSITION SIZING =================== #
 with tab2:
     st.subheader("🧮 Risk-based Position Sizing")
-    st.markdown("Determine **how many shares** you can safely buy based on your risk tolerance (PKR or %).")
+    st.markdown("Calculate the number of shares to buy based on your **risk tolerance** (PKR or %).")
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -159,7 +157,7 @@ with tab2:
 
     if effective_risk and entry_price2 and stop_loss2:
         st.markdown("<div class='result-card'>", unsafe_allow_html=True)
-        st.markdown("### 📊 Position Sizing Summary")
+        st.markdown("### 📊 Position Sizing Results")
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.markdown("<div class='metric-label'>Allowed Risk</div>", unsafe_allow_html=True)
         c1.markdown(f"<div class='metric-value'>PKR {effective_risk:,.2f}</div>", unsafe_allow_html=True)
@@ -173,9 +171,52 @@ with tab2:
         c5.markdown(f"<div class='metric-value'>{reward_risk_ratio2:,.2f}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<h4 class='chart-title'>📉 Risk vs Profit Potential</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 class='chart-title'>📉 Risk vs Profit</h4>", unsafe_allow_html=True)
         fig2, ax2 = plt.subplots(figsize=(5, 2.8))
         ax2.bar(["Risk", "Profit"], [effective_risk, potential_profit], color=['#FF1744', '#00E676'], alpha=0.9)
         ax2.set_ylabel("PKR")
         ax2.grid(alpha=0.2)
         st.pyplot(fig2)
+
+# =================== TAB 3: SHORT TRADE =================== #
+with tab3:
+    st.subheader("📉 Short (Sell First) Trade Calculator")
+    st.markdown("Analyze a **short-side trade** — when you sell high and aim to buy back lower.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        total_investment_short = st.number_input("💰 Total Investment (PKR)", min_value=0.0, step=100.0, format="%.2f", key="short_inv")
+        entry_price_short = st.number_input("📉 Entry Price (Sell)", min_value=0.0, step=0.1, format="%.2f", key="short_entry")
+    with col2:
+        stop_loss_short = st.number_input("🛑 Stop Loss (PKR)", min_value=0.0, step=0.1, format="%.2f", key="short_stop")
+        target_price_short = st.number_input("🎯 Target Buyback Price (PKR)", min_value=0.0, step=0.1, format="%.2f", key="short_target")
+
+    if total_investment_short and entry_price_short and stop_loss_short and target_price_short:
+        shares_short = total_investment_short / entry_price_short if entry_price_short else 0
+        risk_per_share_short = stop_loss_short - entry_price_short
+        reward_per_share_short = entry_price_short - target_price_short
+        total_risk_short = risk_per_share_short * shares_short
+        total_reward_short = reward_per_share_short * shares_short
+        reward_risk_ratio_short = total_reward_short / total_risk_short if total_risk_short != 0 else 0
+
+        st.markdown("<div class='result-card'>", unsafe_allow_html=True)
+        st.markdown("### 📉 Short Trade Results")
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.markdown("<div class='metric-label'>Shares</div>", unsafe_allow_html=True)
+        c1.markdown(f"<div class='metric-value'>{shares_short:,.2f}</div>", unsafe_allow_html=True)
+        c2.markdown("<div class='metric-label'>Risk/Share</div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='metric-value'>PKR {risk_per_share_short:,.2f}</div>", unsafe_allow_html=True)
+        c3.markdown("<div class='metric-label'>Total Risk</div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='metric-value'>PKR {total_risk_short:,.2f}</div>", unsafe_allow_html=True)
+        c4.markdown("<div class='metric-label'>Profit</div>", unsafe_allow_html=True)
+        c4.markdown(f"<div class='metric-value'>PKR {total_reward_short:,.2f}</div>", unsafe_allow_html=True)
+        c5.markdown("<div class='metric-label'>Reward/Risk</div>", unsafe_allow_html=True)
+        c5.markdown(f"<div class='metric-value'>{reward_risk_ratio_short:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<h4 class='chart-title'>📊 Short Trade — Risk vs Reward</h4>", unsafe_allow_html=True)
+        fig3, ax3 = plt.subplots(figsize=(5, 2.8))
+        ax3.bar(["Total Risk", "Total Profit"], [total_risk_short, total_reward_short], color=['#FF4B4B', '#00E676'], alpha=0.9)
+        ax3.set_ylabel("PKR")
+        ax3.grid(alpha=0.2)
+        st.pyplot(fig3)
