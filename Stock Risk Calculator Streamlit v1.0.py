@@ -25,6 +25,7 @@ st.markdown("""
     .stApp {
         background-color: #0E1117;
     }
+            
     h1, h2, h3 {
         color: #00B4D8;
         font-weight: 700;
@@ -40,6 +41,9 @@ st.markdown("""
         color: #E0E0E0;
         transition: 0.3s;
         font-weight: 500;
+    }
+    .st-emotion-cache-1w723zb{
+         max-width: 1000px!important; 
     }
     .stTabs [aria-selected="true"] {
         background-color: #00B4D8 !important;
