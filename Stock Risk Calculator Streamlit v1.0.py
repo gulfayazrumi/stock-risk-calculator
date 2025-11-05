@@ -1,191 +1,148 @@
 import streamlit as st
+import pandas as pd
 import matplotlib.pyplot as plt
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
-# --------------------------------
-# Streamlit Page Setup
-# --------------------------------
-st.set_page_config(
-    page_title="📊 Stock Risk Calculator",
-    page_icon="📈",
-    layout="wide"
+# -------------------------------
+# APP CONFIG
+# -------------------------------
+plt.style.use('dark_background')
+st.set_page_config(page_title="📊 Stock Risk Calculator", layout="centered")
+
+# -------------------------------
+# HEADER
+# -------------------------------
+st.markdown("<h1 style='text-align:center; color:#00FFFF;'>📊 Stock Risk Calculator</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:gray;'>Analyze your risk, reward, and position size instantly</p>", unsafe_allow_html=True)
+st.divider()
+
+# -------------------------------
+# SIDEBAR - INPUTS
+# -------------------------------
+st.sidebar.header("⚙️ Input Parameters")
+
+currency = st.sidebar.selectbox("Currency", ["PKR", "USD"])
+symbol = "₨" if currency == "PKR" else "$"
+
+entry_price = st.sidebar.number_input(f"Entry Price ({symbol})", min_value=0.0, value=150.0, step=0.1)
+stop_loss = st.sidebar.number_input(f"Stop Loss ({symbol})", min_value=0.0, value=140.0, step=0.1)
+target_price = st.sidebar.number_input(f"Target Price ({symbol})", min_value=0.0, value=165.0, step=0.1)
+capital = st.sidebar.number_input(f"Total Capital ({symbol})", min_value=0.0, value=200000.0, step=1000.0)
+risk_percent = st.sidebar.slider("Risk per Trade (%)", min_value=0.5, max_value=10.0, value=2.0)
+
+# -------------------------------
+# CALCULATIONS
+# -------------------------------
+risk_per_trade = capital * (risk_percent / 100)
+risk_per_share = entry_price - stop_loss
+reward_per_share = target_price - entry_price
+reward_risk_ratio = reward_per_share / risk_per_share if risk_per_share > 0 else 0
+shares = risk_per_trade / risk_per_share if risk_per_share > 0 else 0
+total_risk = shares * risk_per_share
+potential_profit = shares * reward_per_share
+
+# -------------------------------
+# RESULTS SECTION
+# -------------------------------
+st.subheader("📈 Results")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric(label="Shares", value=f"{shares:.2f}")
+with col2:
+    st.metric(label="Risk / Share", value=f"{symbol} {risk_per_share:.2f}")
+with col3:
+    st.metric(label="Total Risk", value=f"{symbol} {total_risk:,.2f}")
+
+col4, col5 = st.columns(2)
+with col4:
+    st.metric(label="Reward / Risk Ratio", value=f"{reward_risk_ratio:.2f}")
+with col5:
+    st.metric(label="Potential Profit", value=f"{symbol} {potential_profit:,.2f}")
+
+# -------------------------------
+# CHART SECTION
+# -------------------------------
+st.markdown("### 📊 Risk vs Reward Visualization")
+
+fig, ax = plt.subplots(figsize=(6, 3))
+bars = ax.bar(["Stop Loss", "Entry", "Target"], [stop_loss, entry_price, target_price],
+              color=['#FF4B4B', '#4BC0C0', '#00FF88'])
+ax.set_ylabel(f"Price ({symbol})", color='white')
+ax.set_title("Trade Setup Overview", color='cyan')
+ax.tick_params(colors='white')
+
+for bar in bars:
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+            ha='center', va='bottom', color='white', fontsize=10)
+
+st.pyplot(fig)
+
+# -------------------------------
+# EXPORT FUNCTIONS
+# -------------------------------
+results_data = {
+    "Metric": ["Shares", "Risk/Share", "Total Risk", "Reward/Risk", "Potential Profit"],
+    "Value": [f"{shares:.2f}", f"{symbol}{risk_per_share:.2f}",
+              f"{symbol}{total_risk:,.2f}", f"{reward_risk_ratio:.2f}",
+              f"{symbol}{potential_profit:,.2f}"]
+}
+df_results = pd.DataFrame(results_data)
+
+def convert_df_to_csv(df):
+    return df.to_csv(index=False).encode('utf-8')
+
+def generate_pdf(df):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(180, 800, "Stock Risk Calculator Report")
+    c.setFont("Helvetica", 11)
+    c.drawString(50, 770, f"Currency: {currency}")
+    c.drawString(50, 755, f"Capital: {symbol}{capital:,.2f}")
+    c.drawString(50, 740, f"Risk per Trade: {risk_percent:.2f}%")
+
+    y = 700
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Metric")
+    c.drawString(250, y, "Value")
+    c.line(50, y-2, 400, y-2)
+    c.setFont("Helvetica", 11)
+
+    for i, row in df.iterrows():
+        y -= 20
+        c.drawString(50, y, row["Metric"])
+        c.drawString(250, y, row["Value"])
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+csv_data = convert_df_to_csv(df_results)
+pdf_data = generate_pdf(df_results)
+
+st.download_button(
+    label="⬇️ Download Results (CSV)",
+    data=csv_data,
+    file_name="stock_risk_results.csv",
+    mime="text/csv"
 )
 
-# --- Force Dark Mode Styling ---
-st.markdown("""
-<style>
-    body, .stApp { background-color: #0E1117 !important; color: #FFFFFF !important; }
+st.download_button(
+    label="🧾 Download PDF Report",
+    data=pdf_data,
+    file_name="stock_risk_report.pdf",
+    mime="application/pdf"
+)
 
-    h1, h2, h3, h4, h5, h6, p, label, div, span { color: #FFFFFF !important; }
-
-    /* Input fields */
-    .stNumberInput input, .stTextInput input, .stSelectbox div[data-baseweb="select"], textarea {
-        background-color: #262730 !important;
-        color: #FFFFFF !important;
-        border-radius: 8px !important;
-    }
-
-    /* Buttons */
-    .stButton>button {
-        background-color: #1f77b4 !important;
-        color: white !important;
-        border-radius: 6px !important;
-        font-weight: 500 !important;
-        padding: 6px 20px !important;
-    }
-    .stButton>button:hover { background-color: #155a8a !important; }
-
-    /* Tabs */
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1a1c23 !important;
-        color: #FFFFFF !important;
-        border-radius: 8px 8px 0 0 !important;
-    }
-    .stTabs [data-baseweb="tab"]:hover { background-color: #2a2d35 !important; }
-
-    /* KPI boxes */
-    .kpi-box {
-        background-color: #1a1c23;
-        padding: 16px;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .kpi-label {
-        font-size: 0.9rem;
-        color: #b0b0b0;
-    }
-    .kpi-value {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #FFFFFF;
-    }
-
-</style>
-""", unsafe_allow_html=True)
-
-st.title("📊 Stock Risk Calculator (Dark Mode)")
-
-tab1, tab2 = st.tabs(["💵 Investment-Based Calculator", "🧮 Position Sizing by Risk Limit"])
-
-if "saved_values" not in st.session_state:
-    st.session_state.saved_values = None
-
-# ============================================================
-# TAB 1
-# ============================================================
-with tab1:
-    st.header("💵 Investment-Based Calculator")
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        stock = st.text_input("Stock Symbol", key="stock_tab1", placeholder="e.g. PSX:ABC")
-    with c2:
-        entry_price = st.number_input("Entry Price (PKR)", min_value=0.0, step=0.1, format="%.2f")
-    with c3:
-        target_price = st.number_input("Target Price (PKR)", min_value=0.0, step=0.1, format="%.2f")
-
-    c4, c5, c6 = st.columns(3)
-    with c4:
-        stop_loss = st.number_input("Stop Loss (PKR)", min_value=0.0, step=0.1, format="%.2f")
-    with c5:
-        investment = st.number_input("Investment Amount (PKR)", min_value=0.0, step=100.0, format="%.2f")
-    with c6:
-        commission = st.number_input("Commission (%)", min_value=0.0, max_value=10.0, step=0.1, value=0.0, format="%.2f")
-
-    st.markdown("---")
-
-    if st.button("Calculate", key="calc1"):
-        if entry_price > 0 and stop_loss > 0 and investment > 0:
-            shares = investment / entry_price
-            risk_share = entry_price - stop_loss
-            total_risk = risk_share * shares
-            profit = (target_price - entry_price) * shares
-            rr = profit / total_risk if total_risk > 0 else 0
-
-            st.subheader("📈 Results")
-
-            k1, k2, k3, k4 = st.columns(4)
-            k1.markdown(f"<div class='kpi-box'><div class='kpi-label'>Shares</div><div class='kpi-value'>{shares:,.2f}</div></div>", unsafe_allow_html=True)
-            k2.markdown(f"<div class='kpi-box'><div class='kpi-label'>Risk/Share</div><div class='kpi-value'>PKR {risk_share:,.2f}</div></div>", unsafe_allow_html=True)
-            k3.markdown(f"<div class='kpi-box'><div class='kpi-label'>Total Risk</div><div class='kpi-value'>PKR {total_risk:,.2f}</div></div>", unsafe_allow_html=True)
-            k4.markdown(f"<div class='kpi-box'><div class='kpi-label'>Reward/Risk</div><div class='kpi-value'>{rr:.2f}</div></div>", unsafe_allow_html=True)
-
-            # --- Compact Chart ---
-            fig, ax = plt.subplots(figsize=(3.5, 2.5))
-            ax.bar(["Risk", "Reward"], [total_risk, profit], color=["#d62728", "#2ca02c"])
-            ax.set_facecolor("#0E1117")
-            fig.patch.set_facecolor("#0E1117")
-            ax.tick_params(colors="white")
-            ax.set_title("Risk vs Reward", color="white", fontsize=10)
-            st.pyplot(fig)
-
-            st.session_state.saved_values = {
-                "Stock": stock,
-                "Entry": entry_price,
-                "Stop": stop_loss,
-                "Target": target_price
-            }
-
-            st.success("✅ Saved for Position Sizing tab.")
-        else:
-            st.warning("⚠️ Please fill all fields.")
-
-# ============================================================
-# TAB 2
-# ============================================================
-with tab2:
-    st.header("🧮 Position Sizing by Risk Limit")
-
-    if st.session_state.saved_values:
-        stock2 = st.text_input("Stock Symbol", value=st.session_state.saved_values["Stock"])
-        entry2 = st.number_input("Entry Price (PKR)", value=st.session_state.saved_values["Entry"], step=0.1)
-        stop2 = st.number_input("Stop Loss (PKR)", value=st.session_state.saved_values["Stop"], step=0.1)
-        target2 = st.number_input("Target Price (PKR)", value=st.session_state.saved_values["Target"], step=0.1)
-    else:
-        stock2 = st.text_input("Stock Symbol", placeholder="e.g. PSX:ABC")
-        entry2 = st.number_input("Entry Price (PKR)", min_value=0.0, step=0.1)
-        stop2 = st.number_input("Stop Loss (PKR)", min_value=0.0, step=0.1)
-        target2 = st.number_input("Target Price (PKR)", min_value=0.0, step=0.1)
-
-    risk_mode = st.radio("Select Risk Mode", ["In PKR", "As % of Capital"])
-
-    if risk_mode == "In PKR":
-        max_risk = st.number_input("Max Risk (PKR)", min_value=0.0, step=100.0)
-    else:
-        capital = st.number_input("Total Capital (PKR)", min_value=0.0, step=1000.0)
-        risk_percent = st.number_input("Risk %", min_value=0.0, max_value=100.0, step=0.5)
-        max_risk = (risk_percent / 100) * capital if capital else 0
-
-    st.markdown("---")
-
-    if st.button("Calculate", key="calc2"):
-        if entry2 > 0 and stop2 > 0 and max_risk > 0:
-            risk_per_share = entry2 - stop2
-            if risk_per_share <= 0:
-                st.error("❌ Stop Loss must be less than Entry Price.")
-            else:
-                shares_allowed = max_risk / risk_per_share
-                invest_req = shares_allowed * entry2
-                profit = (target2 - entry2) * shares_allowed
-                rr = profit / max_risk if max_risk > 0 else 0
-
-                st.subheader("📊 Position Sizing Results")
-
-                c1, c2, c3, c4 = st.columns(4)
-                c1.markdown(f"<div class='kpi-box'><div class='kpi-label'>Shares</div><div class='kpi-value'>{shares_allowed:,.2f}</div></div>", unsafe_allow_html=True)
-                c2.markdown(f"<div class='kpi-box'><div class='kpi-label'>Investment</div><div class='kpi-value'>PKR {invest_req:,.2f}</div></div>", unsafe_allow_html=True)
-                c3.markdown(f"<div class='kpi-box'><div class='kpi-label'>Potential Profit</div><div class='kpi-value'>PKR {profit:,.2f}</div></div>", unsafe_allow_html=True)
-                c4.markdown(f"<div class='kpi-box'><div class='kpi-label'>Reward/Risk</div><div class='kpi-value'>{rr:.2f}</div></div>", unsafe_allow_html=True)
-
-                fig2, ax2 = plt.subplots(figsize=(3.5, 2.5))
-                ax2.bar(["Max Risk", "Profit"], [max_risk, profit], color=["#d62728", "#2ca02c"])
-                ax2.set_facecolor("#0E1117")
-                fig2.patch.set_facecolor("#0E1117")
-                ax2.tick_params(colors="white")
-                ax2.set_title("Risk vs Reward", color="white", fontsize=10)
-                st.pyplot(fig2)
-        else:
-            st.warning("⚠️ Please fill all inputs.")
-
-st.markdown("---")
-st.markdown("<p style='text-align:center;color:#888;'>© 2025 Stock Risk Calculator — Develop By Gul Fayaz Rumi</p>", unsafe_allow_html=True)
+# -------------------------------
+# FOOTER
+# -------------------------------
+st.divider()
+st.markdown(
+    "<p style='text-align:center; color:gray; font-size:13px;'>© 2025 Stock Risk Calculator v1.2 — Develop By Gul Fayaz Rumi🧠</p>",
+    unsafe_allow_html=True
+)
