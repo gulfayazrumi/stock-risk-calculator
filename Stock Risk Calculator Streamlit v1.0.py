@@ -1,148 +1,118 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from io import BytesIO
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
 
-# -------------------------------
-# APP CONFIG
-# -------------------------------
-plt.style.use('dark_background')
-st.set_page_config(page_title="📊 Stock Risk Calculator", layout="centered")
-
-# -------------------------------
-# HEADER
-# -------------------------------
-st.markdown("<h1 style='text-align:center; color:#00FFFF;'>📊 Stock Risk Calculator</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:gray;'>Analyze your risk, reward, and position size instantly</p>", unsafe_allow_html=True)
-st.divider()
-
-# -------------------------------
-# SIDEBAR - INPUTS
-# -------------------------------
-st.sidebar.header("⚙️ Input Parameters")
-
-currency = st.sidebar.selectbox("Currency", ["PKR", "USD"])
-symbol = "₨" if currency == "PKR" else "$"
-
-entry_price = st.sidebar.number_input(f"Entry Price ({symbol})", min_value=0.0, value=150.0, step=0.1)
-stop_loss = st.sidebar.number_input(f"Stop Loss ({symbol})", min_value=0.0, value=140.0, step=0.1)
-target_price = st.sidebar.number_input(f"Target Price ({symbol})", min_value=0.0, value=165.0, step=0.1)
-capital = st.sidebar.number_input(f"Total Capital ({symbol})", min_value=0.0, value=200000.0, step=1000.0)
-risk_percent = st.sidebar.slider("Risk per Trade (%)", min_value=0.5, max_value=10.0, value=2.0)
-
-# -------------------------------
-# CALCULATIONS
-# -------------------------------
-risk_per_trade = capital * (risk_percent / 100)
-risk_per_share = entry_price - stop_loss
-reward_per_share = target_price - entry_price
-reward_risk_ratio = reward_per_share / risk_per_share if risk_per_share > 0 else 0
-shares = risk_per_trade / risk_per_share if risk_per_share > 0 else 0
-total_risk = shares * risk_per_share
-potential_profit = shares * reward_per_share
-
-# -------------------------------
-# RESULTS SECTION
-# -------------------------------
-st.subheader("📈 Results")
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric(label="Shares", value=f"{shares:.2f}")
-with col2:
-    st.metric(label="Risk / Share", value=f"{symbol} {risk_per_share:.2f}")
-with col3:
-    st.metric(label="Total Risk", value=f"{symbol} {total_risk:,.2f}")
-
-col4, col5 = st.columns(2)
-with col4:
-    st.metric(label="Reward / Risk Ratio", value=f"{reward_risk_ratio:.2f}")
-with col5:
-    st.metric(label="Potential Profit", value=f"{symbol} {potential_profit:,.2f}")
-
-# -------------------------------
-# CHART SECTION
-# -------------------------------
-st.markdown("### 📊 Risk vs Reward Visualization")
-
-fig, ax = plt.subplots(figsize=(6, 3))
-bars = ax.bar(["Stop Loss", "Entry", "Target"], [stop_loss, entry_price, target_price],
-              color=['#FF4B4B', '#4BC0C0', '#00FF88'])
-ax.set_ylabel(f"Price ({symbol})", color='white')
-ax.set_title("Trade Setup Overview", color='cyan')
-ax.tick_params(colors='white')
-
-for bar in bars:
-    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
-            ha='center', va='bottom', color='white', fontsize=10)
-
-st.pyplot(fig)
-
-# -------------------------------
-# EXPORT FUNCTIONS
-# -------------------------------
-results_data = {
-    "Metric": ["Shares", "Risk/Share", "Total Risk", "Reward/Risk", "Potential Profit"],
-    "Value": [f"{shares:.2f}", f"{symbol}{risk_per_share:.2f}",
-              f"{symbol}{total_risk:,.2f}", f"{reward_risk_ratio:.2f}",
-              f"{symbol}{potential_profit:,.2f}"]
-}
-df_results = pd.DataFrame(results_data)
-
-def convert_df_to_csv(df):
-    return df.to_csv(index=False).encode('utf-8')
-
-def generate_pdf(df):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(180, 800, "Stock Risk Calculator Report")
-    c.setFont("Helvetica", 11)
-    c.drawString(50, 770, f"Currency: {currency}")
-    c.drawString(50, 755, f"Capital: {symbol}{capital:,.2f}")
-    c.drawString(50, 740, f"Risk per Trade: {risk_percent:.2f}%")
-
-    y = 700
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Metric")
-    c.drawString(250, y, "Value")
-    c.line(50, y-2, 400, y-2)
-    c.setFont("Helvetica", 11)
-
-    for i, row in df.iterrows():
-        y -= 20
-        c.drawString(50, y, row["Metric"])
-        c.drawString(250, y, row["Value"])
-
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-csv_data = convert_df_to_csv(df_results)
-pdf_data = generate_pdf(df_results)
-
-st.download_button(
-    label="⬇️ Download Results (CSV)",
-    data=csv_data,
-    file_name="stock_risk_results.csv",
-    mime="text/csv"
+# ============ PAGE CONFIG ============ #
+st.set_page_config(
+    page_title="📈 Stock Risk Calculator",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-st.download_button(
-    label="🧾 Download PDF Report",
-    data=pdf_data,
-    file_name="stock_risk_report.pdf",
-    mime="application/pdf"
-)
+# Apply custom CSS for dark theme
+st.markdown("""
+    <style>
+    body {
+        background-color: #0E1117;
+        color: #FFFFFF;
+    }
+    .stApp {
+        background-color: #0E1117;
+    }
+    h1, h2, h3, h4, h5 {
+        color: #00B4D8;
+    }
+    .result-box {
+        background-color: #1A1C23;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# -------------------------------
-# FOOTER
-# -------------------------------
-st.divider()
-st.markdown(
-    "<p style='text-align:center; color:gray; font-size:13px;'>© 2025 Stock Risk Calculator v1.2 — Develop By Gul Fayaz Rumi🧠</p>",
-    unsafe_allow_html=True
-)
+# ============ MAIN APP ============ #
+st.title("📊 Integrated Stock Risk Calculator")
+st.caption("💼 Includes both Investment-based and Risk-based calculations — all in one place.")
+
+# Tabs
+tab1, tab2 = st.tabs(["💵 Investment-based Calculator", "🧮 Position Sizing by Risk Limit"])
+
+# ============ TAB 1 - INVESTMENT BASED ============ #
+with tab1:
+    st.header("💵 Investment-based Calculator")
+
+    st.info("Enter your total investment, target price, and stop loss to calculate risk, reward, and potential profit.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        total_investment = st.number_input("💰 Total Investment (PKR)", min_value=0.0, step=100.0, format="%.2f")
+        entry_price = st.number_input("📈 Entry Price (PKR)", min_value=0.0, step=0.1, format="%.2f")
+    with col2:
+        stop_loss = st.number_input("📉 Stop Loss Price (PKR)", min_value=0.0, step=0.1, format="%.2f")
+        target_price = st.number_input("🎯 Target Price (PKR)", min_value=0.0, step=0.1, format="%.2f")
+
+    if total_investment and entry_price and stop_loss and target_price:
+        shares = total_investment / entry_price if entry_price else 0
+        risk_per_share = entry_price - stop_loss
+        reward_per_share = target_price - entry_price
+        total_risk = risk_per_share * shares
+        total_reward = reward_per_share * shares
+        reward_risk_ratio = total_reward / total_risk if total_risk != 0 else 0
+
+        st.markdown("<div class='result-box'>", unsafe_allow_html=True)
+        st.subheader("📈 Results")
+        st.write(f"**Shares:** {shares:,.2f}")
+        st.write(f"**Risk per Share:** PKR {risk_per_share:,.2f}")
+        st.write(f"**Total Risk:** PKR {total_risk:,.2f}")
+        st.write(f"**Potential Profit:** PKR {total_reward:,.2f}")
+        st.write(f"**Reward/Risk Ratio:** {reward_risk_ratio:,.2f}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Graph
+        st.subheader("📊 Risk vs Reward Chart")
+        fig, ax = plt.subplots(figsize=(5, 3))
+        ax.bar(["Total Risk", "Total Reward"], [total_risk, total_reward], color=['#FF4B4B', '#00C853'])
+        ax.set_ylabel("PKR")
+        ax.set_title("Risk & Reward Comparison")
+        st.pyplot(fig)
+
+# ============ TAB 2 - POSITION SIZING BY RISK ============ #
+with tab2:
+    st.header("🧮 Position Sizing by Risk Limit")
+    st.info("Enter your maximum acceptable risk (in PKR or %) and the app will calculate how many shares you can buy.")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        max_risk_pkr = st.number_input("💸 Max Risk (PKR)", min_value=0.0, step=100.0, format="%.2f", key="risk_pkr")
+    with col2:
+        capital = st.number_input("🏦 Total Capital (PKR)", min_value=0.0, step=1000.0, format="%.2f", key="capital")
+    with col3:
+        risk_percent = st.number_input("📊 Max Risk (% of Capital)", min_value=0.0, max_value=100.0, step=0.5, format="%.2f", key="risk_pct")
+
+    entry_price2 = st.number_input("📈 Entry Price (PKR)", min_value=0.0, step=0.1, format="%.2f", key="entry2")
+    stop_loss2 = st.number_input("📉 Stop Loss (PKR)", min_value=0.0, step=0.1, format="%.2f", key="stop2")
+    target_price2 = st.number_input("🎯 Target Price (PKR)", min_value=0.0, step=0.1, format="%.2f", key="target2")
+
+    effective_risk = max_risk_pkr or (capital * (risk_percent / 100))
+    risk_per_share2 = entry_price2 - stop_loss2 if entry_price2 and stop_loss2 else 0
+    shares_allowed = effective_risk / risk_per_share2 if risk_per_share2 > 0 else 0
+    potential_profit = (target_price2 - entry_price2) * shares_allowed if shares_allowed > 0 else 0
+    reward_risk_ratio2 = (potential_profit / effective_risk) if effective_risk > 0 else 0
+
+    if effective_risk and entry_price2 and stop_loss2:
+        st.markdown("<div class='result-box'>", unsafe_allow_html=True)
+        st.subheader("📊 Position Sizing Results")
+        st.write(f"**Allowed Risk:** PKR {effective_risk:,.2f}")
+        st.write(f"**Risk per Share:** PKR {risk_per_share2:,.2f}")
+        st.write(f"**Maximum Shares:** {shares_allowed:,.2f}")
+        st.write(f"**Potential Profit:** PKR {potential_profit:,.2f}")
+        st.write(f"**Reward/Risk Ratio:** {reward_risk_ratio2:,.2f}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.subheader("📉 Risk Visualization")
+        fig2, ax2 = plt.subplots(figsize=(5, 3))
+        ax2.bar(["Risk", "Profit"], [effective_risk, potential_profit], color=['#FF1744', '#00E676'])
+        ax2.set_ylabel("PKR")
+        ax2.set_title("Risk vs Profit Potential")
+        st.pyplot(fig2)
