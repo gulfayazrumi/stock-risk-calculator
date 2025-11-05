@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # =================== PAGE CONFIG =================== #
 st.set_page_config(
     page_title="📈 Stock Risk Calculator Pro",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
