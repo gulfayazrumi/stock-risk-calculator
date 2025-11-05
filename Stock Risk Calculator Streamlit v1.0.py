@@ -11,48 +11,55 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Apply Custom CSS for Light/Dark theme visibility ---
+# --- Force Dark Mode with CSS ---
 st.markdown("""
     <style>
-        /* General text visibility for both themes */
+        /* Force dark background */
         body, .stApp {
-            color: var(--text-color);
-            background-color: var(--background-color);
+            background-color: #0E1117 !important;
+            color: #FFFFFF !important;
         }
 
-        /* Handle dark/light theme colors */
-        [data-theme="light"] {
-            --text-color: #000000;
-            --background-color: #FFFFFF;
+        h1, h2, h3, h4, h5, h6, p, label, div, span {
+            color: #FFFFFF !important;
         }
 
-        [data-theme="dark"] {
-            --text-color: #FFFFFF;
-            --background-color: #0E1117;
+        /* Input boxes and widgets */
+        .stNumberInput input, .stTextInput input, .stSelectbox div[data-baseweb="select"], textarea {
+            background-color: #262730 !important;
+            color: #FFFFFF !important;
+            border-radius: 8px !important;
         }
 
-        /* Style headings */
-        h1, h2, h3, h4 {
-            color: var(--text-color);
-        }
-
-        /* Cards, inputs, and buttons */
-        .stNumberInput, .stTextInput, .stSelectbox, .stTextArea {
-            border-radius: 10px;
-        }
+        /* Buttons */
         .stButton>button {
-            background-color: #1f77b4;
-            color: white;
-            border-radius: 8px;
-            font-weight: 500;
+            background-color: #1f77b4 !important;
+            color: white !important;
+            border-radius: 8px !important;
+            font-weight: 500 !important;
         }
         .stButton>button:hover {
-            background-color: #155a8a;
+            background-color: #155a8a !important;
+        }
+
+        /* Tabs */
+        .stTabs [data-baseweb="tab"] {
+            background-color: #1a1c23 !important;
+            color: #FFFFFF !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .stTabs [data-baseweb="tab"]:hover {
+            background-color: #2a2d35 !important;
+        }
+
+        /* Chart background */
+        canvas {
+            background-color: #0E1117 !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Integrated Stock Risk Calculator")
+st.title("📊 Stock Risk Calculator (Dark Mode)")
 
 # --- Tabs for both modules ---
 tab1, tab2 = st.tabs(["💵 Investment-Based Calculator", "🧮 Position Sizing by Risk Limit"])
@@ -101,8 +108,12 @@ with tab1:
             # --- Visualization ---
             fig, ax = plt.subplots(figsize=(5, 3))
             ax.bar(["Total Risk", "Potential Profit"], [total_risk, potential_profit], color=["red", "green"])
-            ax.set_ylabel("PKR")
-            ax.set_title("Risk vs Reward")
+            ax.set_ylabel("PKR", color="white")
+            ax.set_title("Risk vs Reward", color="white")
+            ax.tick_params(axis='x', colors='white')
+            ax.tick_params(axis='y', colors='white')
+            fig.patch.set_facecolor("#0E1117")
+            ax.set_facecolor("#0E1117")
             st.pyplot(fig)
 
             # Save values for use in tab 2
@@ -165,8 +176,12 @@ with tab2:
 
                 fig2, ax2 = plt.subplots(figsize=(5, 3))
                 ax2.bar(["Max Risk", "Potential Profit"], [max_risk, potential_profit], color=["red", "green"])
-                ax2.set_ylabel("PKR")
-                ax2.set_title("Risk vs Reward")
+                ax2.set_ylabel("PKR", color="white")
+                ax2.set_title("Risk vs Reward", color="white")
+                ax2.tick_params(axis='x', colors='white')
+                ax2.tick_params(axis='y', colors='white')
+                fig2.patch.set_facecolor("#0E1117")
+                ax2.set_facecolor("#0E1117")
                 st.pyplot(fig2)
         else:
             st.warning("⚠️ Please fill all inputs before calculating.")
@@ -175,9 +190,8 @@ with tab2:
 st.markdown("""
 ---
 **Notes:**  
-Use the *Save values* button to transfer inputs to the Position Sizing tab.  
 Commission and slippage are conservatively included in calculations.  
-The interface adapts automatically to light/dark mode.  
+The interface is locked in dark mode for better visibility.  
 ---
-© 2025 Stock Risk Calculator — Built with ❤️ using Streamlit.
+© 2025 Stock Risk Calculator- Develop by Gul Fayaz Rumi.
 """)
